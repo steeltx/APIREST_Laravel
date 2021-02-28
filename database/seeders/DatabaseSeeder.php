@@ -28,7 +28,7 @@ class DatabaseSeeder extends Seeder
         Transaction::truncate();
         DB::table('category_product')->truncate();
 
-        $cantidadusuarios = 200;
+        $cantidadusuarios = 1000;
         $cantidadCategorias = 30;
         $cantidadProductos = 1000;
         $cantidadTransacciones = 1000;
