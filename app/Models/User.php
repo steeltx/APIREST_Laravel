@@ -4,13 +4,14 @@ namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     const USUARIO_VERIFICADO = '1';
     const USUARIO_NO_VERIFICADO = '0';
@@ -19,6 +20,7 @@ class User extends Authenticatable
     const USUARIO_REGULAR = 'false';
 
     protected $table = 'users';
+    protected $dates = ['deleted_at'];
 
     /**
      * The attributes that are mass assignable.
@@ -44,7 +46,8 @@ class User extends Authenticatable
         $this->attributes['email'] = strtolower($valor);
     }
 
-    public function getNameAttribute($valor){
+    public function getNameAttribute($valor)
+    {
         return ucwords($valor);
     }
 
