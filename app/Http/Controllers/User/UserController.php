@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\ApiController;
+use App\Mail\UserCreated;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class UserController extends ApiController
 {
@@ -44,7 +46,7 @@ class UserController extends ApiController
 
         $usuario = User::create($campos);
 
-        return $this->showOne($usuario,201);
+        return $this->showOne($usuario, 201);
     }
 
     /**
@@ -70,7 +72,7 @@ class UserController extends ApiController
     {
         // Reglas de validacion
         $validar = $request->validate([
-            'email' => 'email|unique:users,email,'.$user->id,
+            'email' => 'email|unique:users,email,' . $user->id,
             'password' => 'min:6|confirmed',
             'admin' => 'in:' . User::USUARIO_ADMINISTRADOR . ',' . User::USUARIO_REGULAR
         ]);
@@ -91,13 +93,13 @@ class UserController extends ApiController
 
         if ($request->has('admin')) {
             if (!$user->esVerificado()) {
-                return $this->errorResponse('Unicamente los usuarios verificados pueden cambiar su valor de administrador',409);
+                return $this->errorResponse('Unicamente los usuarios verificados pueden cambiar su valor de administrador', 409);
             }
             $user->admin = $request->admin;
         }
 
-        if(!$user->isDirty()){
-            return $this->errorResponse('Se debe especificar al menos un valor diferente para actualizar',422);
+        if (!$user->isDirty()) {
+            return $this->errorResponse('Se debe especificar al menos un valor diferente para actualizar', 422);
         }
 
         $user->save();
@@ -116,5 +118,28 @@ class UserController extends ApiController
         $user->delete();
 
         return $this->showOne($user);
+    }
+
+    public function verify($token)
+    {
+        $user = User::where('verification_token', $token)->firstOrFail();
+        $user->verified = User::USUARIO_VERIFICADO;
+        $user->verification_token = null;
+        $user->save();
+
+        return $this->showMessage('La cuenta ha sido verificada');
+    }
+
+    public function resend(User $user)
+    {
+        if ($user->esVerificado()) {
+            return $this->errorResponse('Este usuario ya ha sido verificado', 409);
+        }
+
+        retry(5, function () use ($user) {
+            Mail::to($user->email)->send(new UserCreated($user));
+        }, 100);
+
+        return $this->showMessage('El correo de verificacion se ha reenviado');
     }
 }
