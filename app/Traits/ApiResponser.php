@@ -21,14 +21,16 @@ trait ApiResponser
 
     protected function showAll(Collection $collection, $code = 200)
     {
-        if($collection->isEmpty()){
+        if ($collection->isEmpty()) {
             return $this->successResponse($collection, $code);
         }
-
         $transformer = $collection->first()->transformer;
+
+        $collection = $this->filterData($collection, $transformer);
+        $collection = $this->sortData($collection, $transformer);
         $collection = $this->transformData($collection, $transformer);
 
-        return $this->successResponse(['data' => $collection, 'items' => count($collection)], $code);
+        return $this->successResponse($collection, $code);
     }
 
     protected function showOne(Model $instance, $code = 200)
@@ -47,5 +49,27 @@ trait ApiResponser
     {
         $tranformation = fractal($data, new $transformer);
         return $tranformation->toArray();
+    }
+
+    protected function sortData(Collection $collection, $transformer)
+    {
+        if (request()->has('sort_by')) {
+            $attribute = $transformer::originalAttribute(request()->sort_by);
+            $collection = $collection->sortBy->{$attribute};
+        }
+        return $collection;
+    }
+
+    protected function filterData(Collection $collection, $transformer)
+    {
+        // recorrer los parametros de la url
+        foreach(request()->query() as $query => $value){
+            $attribute = $transformer::originalAttribute($query);
+            if(isset($attribute, $value)){
+                $collection = $collection->where($attribute,$value);
+            }
+        }
+
+        return $collection;
     }
 }
